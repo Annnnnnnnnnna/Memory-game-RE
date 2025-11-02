@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* 🎥 Fullscreen video background */
+    video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    /* 🧩 Game grid */
+    .game-container {
+      display: grid;
+      grid-template-columns: repeat(4, 140px);
+      grid-gap: 15px;
+      justify-content: center;
+      align-content: center;
+      perspective: 1000px;
+      z-index: 1;
+    }
+
+    .card {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(.36,1.26,.43,1.17); /* 💫 bounce flip */
+      cursor: pointer;
+      border-radius: 15px;
+    }
+
+    .card:hover {
+      box-shadow: 0 0 25px rgba(179, 157, 243, 0.8); /* 💜 glow */
+      transform: scale(1.05) rotateY(var(--rotate, 0deg));
+      transition: all 0.3s ease;
+    }
+
+    .card.flip {
+      transform: rotateY(180deg);
+    }
+
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 15px;
+      backface-visibility: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .front {
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      color: #b39df3;
+    }
+
+    .back {
+      background: #f0e5ff;
+      transform: rotateY(180deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .back img {
+      width: 80%;
+      height: 80%;
+      object-fit: contain;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover .back img {
+      transform: scale(1.1);
+    }
+
+    h1 {
+      position: fixed;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      color: #fff;
+      font-size: 48px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+      letter-spacing: 2px;
+      z-index: 2;
+    }
+
+    /* 🌟 Win screen */
+    .win-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      z-index: 5;
+    }
+
+    .win-screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .win-text {
+      font-size: 70px;
+      color: #b39df3;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+      animation: pop 1s ease forwards;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    button {
+      background: linear-gradient(135deg, #b39df3, #e2d4ff);
+      border: none;
+      border-radius: 25px;
+      padding: 14px 36px;
+      color: #fff;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+  </style>
+</head>
+<body>
+  <video autoplay muted loop playsinline>
+    <source src="re.mp4" type="video/mp4">
+  </video>
+
+  <h1>Memory Game</h1>
+  <div class="game-container" id="game"></div>
+
+  <!-- 🎉 Win screen -->
+  <div class="win-screen" id="winScreen">
+    <div class="win-text">🎉 You Win! 🎉</div>
+    <button id="playAgain">Play Again</button>
+  </div>
+
+  <script>
+    const images = ["k.png", "p.png", "o.png", "j.png", "h.png", "y.png", "u.png"];
+    let cards = [...images, ...images];
+    let firstCard, secondCard;
+    let lockBoard = false;
+    let matched = 0;
+
+    const gameContainer = document.getElementById("game");
+    const winScreen = document.getElementById("winScreen");
+    const playAgainBtn = document.getElementById("playAgain");
+
+    function startGame() {
+      gameContainer.innerHTML = "";
+      winScreen.classList.remove("active");
+      matched = 0;
+      cards = [...images, ...images].sort(() => 0.5 - Math.random());
+
+      cards.forEach(src => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.innerHTML = `
+          <div class="front"></div>
+          <div class="back"><img src="${src}" alt="card"></div>
+        `;
+        card.addEventListener("click", flipCard);
+        gameContainer.appendChild(card);
+      });
+    }
+
+    function flipCard() {
+      if (lockBoard || this === firstCard) return;
+      this.classList.add("flip");
+
+      if (!firstCard) {
+        firstCard = this;
+        return;
+      }
+
+      secondCard = this;
+      checkMatch();
+    }
+
+    function checkMatch() {
+      const isMatch =
+        firstCard.querySelector("img").src === secondCard.querySelector("img").src;
+
+      isMatch ? disableCards() : unflipCards();
+    }
+
+    function disableCards() {
+      matched++;
+      firstCard.removeEventListener("click", flipCard);
+      secondCard.removeEventListener("click", flipCard);
+      resetBoard();
+
+      if (matched === images.length) {
+        setTimeout(() => {
+          winScreen.classList.add("active");
+        }, 600);
+      }
+    }
+
+    function unflipCards() {
+      lockBoard = true;
+      setTimeout(() => {
+        firstCard.classList.remove("flip");
+        secondCard.classList.remove("flip");
+        resetBoard();
+      }, 900);
+    }
+
+    function resetBoard() {
+      [firstCard, secondCard, lockBoard] = [null, null, false];
+    }
+
+    playAgainBtn.addEventListener("click", startGame);
+
+    // 🟣 Start first game
+    startGame();
+  </script>
+</body>
+</html>
+
