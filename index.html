@@ -5,31 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RE Memory Game</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: 'Poppins', sans-serif;
+      margin: 0; padding: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; font-family: 'Poppins', sans-serif;
     }
-
     /* 🎥 Fullscreen video background */
     video {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; z-index: -1;
     }
-
     /* 🧩 Game grid */
     .game-container {
       display: grid;
@@ -40,132 +27,85 @@
       perspective: 1000px;
       z-index: 1;
     }
-
     .card {
-      width: 140px;
-      height: 140px;
-      position: relative;
+      width: 140px; height: 140px; position: relative;
       transform-style: preserve-3d;
-      transition: transform 0.6s cubic-bezier(.36,1.26,.43,1.17);
-      cursor: pointer;
-      border-radius: 15px;
+      transition: transform 0.6s cubic-bezier(.36,1.26,.43,1.17); /* bounce */
+      cursor: pointer; border-radius: 15px;
     }
-
     .card:hover {
-      box-shadow: 0 0 25px rgba(179, 157, 243, 0.8);
+      box-shadow: 0 0 25px rgba(179,157,243,0.8); /* glow */
       transform: scale(1.05) rotateY(var(--rotate, 0deg));
       transition: all 0.3s ease;
     }
-
-    .card.flip {
-      transform: rotateY(180deg);
-    }
-
+    .card.flip { transform: rotateY(180deg); }
     .front, .back {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 15px;
-      backface-visibility: hidden;
+      position: absolute; width: 100%; height: 100%;
+      border-radius: 15px; backface-visibility: hidden;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-
     .front {
-      background: rgba(255, 255, 255, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-      color: #b39df3;
+      background: rgba(255,255,255,0.9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; color: #b39df3;
     }
-
     .back {
-      background: #f0e5ff;
-      transform: rotateY(180deg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: #f0e5ff; transform: rotateY(180deg);
+      display: flex; align-items: center; justify-content: center;
     }
-
     .back img {
-      width: 80%;
-      height: 80%;
-      object-fit: contain;
-      border-radius: 10px;
-      transition: transform 0.3s ease;
+      width: 80%; height: 80%; object-fit: contain;
+      border-radius: 10px; transition: transform 0.3s ease;
     }
-
-    .card:hover .back img {
-      transform: scale(1.1);
-    }
+    .card:hover .back img { transform: scale(1.1); }
 
     h1 {
-      position: fixed;
-      top: 20px;
-      width: 100%;
-      text-align: center;
-      color: #fff;
-      font-size: 48px;
-      text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
-      letter-spacing: 2px;
-      z-index: 2;
+      position: fixed; top: 20px; width: 100%; text-align: center;
+      color: #fff; font-size: 48px; letter-spacing: 2px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.6); z-index: 2;
+    }
+
+    /* ⏱️ Timer HUD */
+    #timer {
+      position: fixed; top: 24px; right: 24px; z-index: 3;
+      background: rgba(0,0,0,0.45); color: #fff;
+      padding: 8px 14px; border-radius: 12px;
+      font-weight: 700; letter-spacing: .5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
 
     /* 🌟 Win screen */
     .win-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.85);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.6s ease;
-      z-index: 5;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.6s ease; z-index: 5;
     }
-
-    .win-screen.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-
+    .win-screen.active { opacity: 1; pointer-events: all; }
     .win-text {
-      font-size: 70px;
-      color: #b39df3;
+      font-size: 70px; color: #b39df3;
       text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-      margin-bottom: 30px;
-      animation: pop 1s ease forwards;
+      margin-bottom: 10px; animation: pop 1s ease forwards;
     }
-
+    .win-time {
+      font-size: 22px; color: #6b5fbf; margin-bottom: 28px;
+    }
     @keyframes pop {
       0% { transform: scale(0); opacity: 0; }
       60% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); }
     }
-
     button {
       background: linear-gradient(135deg, #b39df3, #e2d4ff);
-      border: none;
-      border-radius: 25px;
-      padding: 14px 36px;
-      color: #fff;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
+      border: none; border-radius: 25px; padding: 14px 36px;
+      color: #fff; font-size: 22px; font-weight: bold; cursor: pointer;
       box-shadow: 0 4px 10px rgba(0,0,0,0.15);
       transition: transform 0.2s, box-shadow 0.2s;
     }
-
     button:hover {
       transform: translateY(-3px);
       box-shadow: 0 6px 15px rgba(0,0,0,0.2);
     }
-
   </style>
 </head>
 <body>
@@ -174,30 +114,75 @@
   </video>
 
   <h1>RE Memory Game</h1>
+  <div id="timer">Time: 00:00</div>
   <div class="game-container" id="game"></div>
 
   <!-- 🎉 Win screen -->
   <div class="win-screen" id="winScreen">
     <div class="win-text">🎉 You Win! 🎉</div>
+    <div class="win-time" id="finalTime">Time: 00:00</div>
     <button id="playAgain">Play Again</button>
   </div>
 
   <script>
-    // 🖼️ Images (без k.png)
+    // Images (без k.png)
     const images = ["p.png", "o.png", "j.png", "h.png", "y.png", "u.png"];
     let cards = [...images, ...images];
+
     let firstCard, secondCard;
     let lockBoard = false;
     let matched = 0;
 
+    // Timer state
+    let startTs = null;
+    let timerId = null;
+    let running = false;
+
     const gameContainer = document.getElementById("game");
     const winScreen = document.getElementById("winScreen");
     const playAgainBtn = document.getElementById("playAgain");
+    const timerEl = document.getElementById("timer");
+    const finalTimeEl = document.getElementById("finalTime");
+
+    function formatTime(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const ss = String(totalSec % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
+
+    function startTimerIfNeeded() {
+      if (running) return;
+      running = true;
+      startTs = performance.now();
+      timerId = setInterval(() => {
+        const elapsed = performance.now() - startTs;
+        timerEl.textContent = "Time: " + formatTime(elapsed);
+      }, 200);
+    }
+
+    function stopTimerAndShow(elapsedMs) {
+      running = false;
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      finalTimeEl.textContent = "Time: " + formatTime(elapsedMs);
+      winScreen.classList.add("active");
+    }
+
+    function resetTimerDisplay() {
+      if (timerId) clearInterval(timerId);
+      timerId = null;
+      running = false;
+      startTs = null;
+      timerEl.textContent = "Time: 00:00";
+    }
 
     function startGame() {
       gameContainer.innerHTML = "";
       winScreen.classList.remove("active");
       matched = 0;
+      resetTimerDisplay();
+
       cards = [...images, ...images].sort(() => 0.5 - Math.random());
 
       cards.forEach(src => {
@@ -214,6 +199,10 @@
 
     function flipCard() {
       if (lockBoard || this === firstCard) return;
+
+      // ⏱️ стартуємо таймер на першому перевороті
+      startTimerIfNeeded();
+
       this.classList.add("flip");
 
       if (!firstCard) {
@@ -239,9 +228,9 @@
       resetBoard();
 
       if (matched === images.length) {
-        setTimeout(() => {
-          winScreen.classList.add("active");
-        }, 600);
+        // перемога — зупиняємо таймер і показуємо фінальний час
+        const elapsed = performance.now() - startTs;
+        setTimeout(() => stopTimerAndShow(elapsed), 600);
       }
     }
 
